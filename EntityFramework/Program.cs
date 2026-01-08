@@ -7,6 +7,7 @@ namespace EntityFramework
         static void Main(string[] args)
         {
             new LibraryContext();
+            Console.ReadLine();
         }
     }
 }
