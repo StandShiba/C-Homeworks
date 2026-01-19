@@ -1,72 +1,64 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using NoteMVCTestNeuro.Data;
-using NoteMVCTestNeuro.Models;
+using NoteMVCTestNeuro.Services;
+using NoteMVCTestNeuro.ViewModels;
 
 namespace NoteMVCTestNeuro.Controllers
 {
     public class NotesController : Controller
     {
-        private readonly AppDbContext _db;
+        private readonly INotesService _notes;
 
-        public NotesController(AppDbContext db)
+        public NotesController(INotesService notes)
         {
-            _db = db;
+            _notes = notes;
         }
 
         public async Task<IActionResult> Index()
         {
-            var notes = await _db.Notes
-                .OrderByDescending(n => n.UpdatedUtc)
-                .ToListAsync();
-
+            var notes = await _notes.GetAllAsync();
             return View(notes);
         }
 
         public IActionResult Create()
         {
-            return View(new Note());
+            return View(new NoteEditVm());
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Title,Content")] Note note)
+        public async Task<IActionResult> Create(NoteEditVm vm)
         {
             if (!ModelState.IsValid)
-                return View(note);
+                return View(vm);
 
-            note.CreatedUtc = DateTime.UtcNow;
-            note.UpdatedUtc = DateTime.UtcNow;
-
-            _db.Notes.Add(note);
-            await _db.SaveChangesAsync();
-
+            await _notes.CreateAsync(vm.Title, vm.Content);
             return RedirectToAction(nameof(Index));
         }
 
         public async Task<IActionResult> Edit(int id)
         {
-            var note = await _db.Notes.FindAsync(id);
+            var note = await _notes.GetByIdAsync(id);
             if (note == null) return NotFound();
 
-            return View(note);
+            var vm = new NoteEditVm
+            {
+                Id = note.Id,
+                Title = note.Title,
+                Content = note.Content
+            };
+
+            return View(vm);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Title,Content")] Note input)
+        public async Task<IActionResult> Edit(int id, NoteEditVm vm)
         {
-            if (id != input.Id) return BadRequest();
-            if (!ModelState.IsValid) return View(input);
+            if (id != vm.Id) return BadRequest();
+            if (!ModelState.IsValid) return View(vm);
 
-            var note = await _db.Notes.FirstOrDefaultAsync(n => n.Id == id);
-            if (note == null) return NotFound();
-
-            note.Title = input.Title;
-            note.Content = input.Content;
-            note.UpdatedUtc = DateTime.UtcNow;
-
-            await _db.SaveChangesAsync();
+            var ok = await _notes.UpdateAsync(vm.Id, vm.Title, vm.Content);
+            if (!ok) return NotFound();
 
             return RedirectToAction(nameof(Index));
         }

@@ -12,7 +12,6 @@ namespace NoteMVCTestNeuro.Models
 
         [StringLength(4000)]
         public string? Content { get; set; }
-
         public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedUtc { get; set; } = DateTime.UtcNow;
     }
