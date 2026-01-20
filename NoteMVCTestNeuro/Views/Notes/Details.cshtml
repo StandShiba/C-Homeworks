@@ -1,0 +1,27 @@
+﻿@model NoteMVCTestNeuro.Models.Note
+
+@{
+    ViewData["Title"] = "Note Details";
+}
+
+<h1>@Model.Title</h1>
+
+<div class="mb-3 text-muted">
+    Created (UTC): @Model.CreatedUtc.ToString("yyyy-MM-dd HH:mm")<br />
+    Updated (UTC): @Model.UpdatedUtc.ToString("yyyy-MM-dd HH:mm")
+</div>
+
+@if (!string.IsNullOrWhiteSpace(Model.Content))
+{
+    <pre class="p-3 bg-light border rounded">@Model.Content</pre>
+}
+else
+{
+    <div class="text-muted">No content</div>
+}
+
+<div class="mt-3 d-flex gap-2">
+    <a class="btn btn-outline-secondary" asp-action="Index">Back</a>
+    <a class="btn btn-outline-secondary" asp-action="Edit" asp-route-id="@Model.Id">Edit</a>
+    <a class="btn btn-outline-danger" asp-action="Delete" asp-route-id="@Model.Id">Delete</a>
+</div>

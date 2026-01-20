@@ -1,10 +1,11 @@
-﻿using System;
+﻿using Microsoft.EntityFrameworkCore;
+using NoteMVCTestNeuro.Data;
+using NoteMVCTestNeuro.Models;
+using NoteMVCTestNeuro.ViewModels;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
-using NoteMVCTestNeuro.Data;
-using NoteMVCTestNeuro.Models;
 
 namespace NoteMVCTestNeuro.Services
 {
@@ -17,16 +18,35 @@ namespace NoteMVCTestNeuro.Services
             _db = db;
         }
 
-        public Task<List<Note>> GetAllAsync()
+        public async Task<PagedResult<Note>> GetPagedAsync(int page, int pageSize)
         {
-            return _db.Notes
+            if (page < 1) page = 1;
+            if (pageSize < 1) pageSize = 10;
+            if (pageSize > 100) pageSize = 100;
+
+            var query = _db.Notes
                 .OrderByDescending(n => n.UpdatedUtc)
+                .AsNoTracking();
+
+            var total = await query.CountAsync();
+
+            var items = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
                 .ToListAsync();
+
+            return new PagedResult<Note>
+            {
+                Items = items,
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = total
+            };
         }
 
         public Task<Note?> GetByIdAsync(int id)
         {
-            return _db.Notes.FirstOrDefaultAsync(n => n.Id == id);
+            return _db.Notes.AsNoTracking().FirstOrDefaultAsync(n => n.Id == id);
         }
 
         public async Task<int> CreateAsync(string title, string? content)
@@ -53,6 +73,16 @@ namespace NoteMVCTestNeuro.Services
             note.Content = content;
             note.UpdatedUtc = DateTime.UtcNow;
 
+            await _db.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<bool> DeleteAsync(int id)
+        {
+            var note = await _db.Notes.FirstOrDefaultAsync(n => n.Id == id);
+            if (note == null) return false;
+
+            _db.Notes.Remove(note);
             await _db.SaveChangesAsync();
             return true;
         }

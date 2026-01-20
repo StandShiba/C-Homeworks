@@ -13,23 +13,27 @@ namespace NoteMVCTestNeuro.Controllers
             _notes = notes;
         }
 
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(int page = 1, int pageSize = 10)
         {
-            var notes = await _notes.GetAllAsync();
-            return View(notes);
+            var model = await _notes.GetPagedAsync(page, pageSize);
+            return View(model);
         }
 
-        public IActionResult Create()
+        public async Task<IActionResult> Details(int id)
         {
-            return View(new NoteEditVm());
+            var note = await _notes.GetByIdAsync(id);
+            if (note == null) return NotFound();
+
+            return View(note);
         }
+
+        public IActionResult Create() => View(new NoteEditVm());
 
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(NoteEditVm vm)
         {
-            if (!ModelState.IsValid)
-                return View(vm);
+            if (!ModelState.IsValid) return View(vm);
 
             await _notes.CreateAsync(vm.Title, vm.Content);
             return RedirectToAction(nameof(Index));
@@ -40,14 +44,12 @@ namespace NoteMVCTestNeuro.Controllers
             var note = await _notes.GetByIdAsync(id);
             if (note == null) return NotFound();
 
-            var vm = new NoteEditVm
+            return View(new NoteEditVm
             {
                 Id = note.Id,
                 Title = note.Title,
                 Content = note.Content
-            };
-
-            return View(vm);
+            });
         }
 
         [HttpPost]
@@ -58,6 +60,24 @@ namespace NoteMVCTestNeuro.Controllers
             if (!ModelState.IsValid) return View(vm);
 
             var ok = await _notes.UpdateAsync(vm.Id, vm.Title, vm.Content);
+            if (!ok) return NotFound();
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        public async Task<IActionResult> Delete(int id)
+        {
+            var note = await _notes.GetByIdAsync(id);
+            if (note == null) return NotFound();
+
+            return View(note);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteConfirmed(int id)
+        {
+            var ok = await _notes.DeleteAsync(id);
             if (!ok) return NotFound();
 
             return RedirectToAction(nameof(Index));
